@@ -24,28 +24,32 @@ const WeatherComponent = () => {
           throw new Error('Network response was not ok ' + response.statusText);
         }
         const data = await response.json();
-        
-        // Process the data
-        const now = new Date();
-        const hour = now.getHours();
-        const tempCelsius = data.hourly.temperature_2m[hour];
-        const waterTempCelsius = data.hourly.temperature_80m[hour];
-        const windSpeedKmh = data.hourly.wind_speed_10m[hour];
-        const waveHeight = (data.hourly.wind_speed_10m[hour] ** 2) / 9.81; // Simplified
 
-        setWeatherData({
-          airTemperature: convertTemperature(tempCelsius, tempUnit === 'F'),
-          waterTemperature: convertTemperature(waterTempCelsius, tempUnit === 'F'),
-          windSpeed: windSpeedKmh / 3.6, // Convert km/h to m/s
-          waveHeight
-        });
+        // Determine the index of the selected date in the hourly data
+        const selectedDateString = selectedDate.toISOString().split('T')[0];
+        const hour = selectedDate.getHours();
+        const index = data.hourly.time.findIndex((time) => time.startsWith(selectedDateString) && new Date(time).getHours() === hour);
+
+        if (index !== -1) {
+          const tempCelsius = data.hourly.temperature_2m[index];
+          const waterTempCelsius = data.hourly.temperature_80m[index];
+          const windSpeedKmh = data.hourly.wind_speed_10m[index];
+          const waveHeight = (windSpeedKmh ** 2) / 9.81; // Simplified
+
+          setWeatherData({
+            airTemperature: convertTemperature(tempCelsius, tempUnit === 'F'),
+            waterTemperature: convertTemperature(waterTempCelsius, tempUnit === 'F'),
+            windSpeed: windSpeedKmh / 3.6, // Convert km/h to m/s
+            waveHeight
+          });
+        }
       } catch (error) {
         console.error('There was a problem with the fetch operation:', error);
       }
     };
 
     fetchData();
-  }, [tempUnit]);
+  }, [selectedDate, tempUnit]); // Fetch data when selectedDate or tempUnit changes
 
   const toggleTempUnit = () => {
     setTempUnit(tempUnit === 'C' ? 'F' : 'C');
